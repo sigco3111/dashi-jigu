@@ -5,6 +5,7 @@ const $ = (s) => document.querySelector(s);
 const STORE = 'dashi-jigu-lives';
 let seed = null;
 let choices = [];
+let lastLife = null;
 
 function show(id) {
   document.querySelectorAll('.screen').forEach((e) => e.classList.add('hidden'));
@@ -190,10 +191,12 @@ function showArchive() {
 
 // ---------- 인생 지도 카드 ----------
 function renderCard(life) {
+  lastLife = life;
   const r = life.result;
   const cv = $('#cv-card');
+  const W = 1000, H = 1420;
+  cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  const W = 1000, H = 1250;
   const rng = mulberry32(hashSeed(life.seed + '-card'));
 
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -308,6 +311,25 @@ function renderCard(life) {
     ctx.textAlign = 'left';
   });
 
+  // 삶의 리포트 패널 (R7): 저장 이미지 안에 수명·동갑·소득 정산을 담는다
+  const rep2 = lifeReport(life);
+  if (rep2) {
+    ctx.fillStyle = 'rgba(20,28,56,.9)';
+    roundRect(ctx, 40, 1240, W - 80, 122, 18); ctx.fill();
+    const sgn = (d) => (d >= 0 ? '+' : '-') + Math.abs(d) + '년';
+    const rows2 = [
+      ['수명', life.country + ' 기대수명(' + rep2.countryLE + '세) 대비 ' + sgn(rep2.diffCountry) + ' · 세계 평균(' + rep2.worldLE + '세) 대비 ' + sgn(rep2.diffWorld)],
+      ['동갑', '같은 해 태어난 세계 아기의 약 ' + rep2.diedEarlierPct + '%가 먼저 세상을 떠남 (추정)'],
+      ['소득', life.country + ' 안 상위 ' + rep2.incomeTopCountryPct + '% · 세계 동갑 상위 ' + rep2.incomeTopWorldPct + '% (추정)'],
+    ];
+    rows2.forEach(([k, v], i) => {
+      ctx.fillStyle = '#7fd4c1'; ctx.font = '600 20px sans-serif';
+      ctx.fillText(k, 70, 1280 + i * 32);
+      ctx.fillStyle = '#c3cbdf'; ctx.font = '20px sans-serif';
+      ctx.fillText(v, 150, 1280 + i * 32);
+    });
+  }
+
   ctx.fillStyle = '#5c6685';
   ctx.font = '18px sans-serif';
   const evN = life.stages.filter((s2) => s2.event).length;
@@ -337,11 +359,13 @@ $('#btn-save').addEventListener('click', () => {
 });
 $('#btn-share').addEventListener('click', async (e) => {
   const url = location.origin + location.pathname + '#s=' + seed + '-' + choices.join('');
+  const l = lastLife || simulate(seed, choices);
+  const text = '「다시, 지구」 ' + l.name + ' — ' + l.country + '에서 ' + l.result.deathAge + '세를 살았습니다 (이 삶의 확률 ' + l.rarityN + '명 중 1명).\n당신의 삶도 뽑아 보세요: ' + url;
   try {
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(text);
     e.target.textContent = '복사됨 ✓';
   } catch (err) {
-    prompt('링크를 복사하세요', url);
+    prompt('아래 문구를 복사하세요', text);
   }
   setTimeout(() => { e.target.textContent = '링크 복사'; }, 1600);
 });
