@@ -1,6 +1,6 @@
 // 「다시, 지구」 엔진 — 시드 결정론적 시뮬레이션. 같은 시드 + 같은 선택 = 같은 인생.
 import { COUNTRIES, TOTAL_BIRTHS } from '../data/countries.js';
-import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS } from '../data/content.js';
+import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, CHAINS } from '../data/content.js';
 
 export function hashSeed(str) {
   let h = 2166136261 >>> 0;
@@ -40,10 +40,13 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 // choices: 구간별 선택 인덱스 배열. 진행 중이면 앞부분만 채워진 배열.
 // 반환: 지금까지의 선택으로 결정되는 인생의 현재 상태(완결이면 done: true).
 const EVENT_P = 0.5; // 구간당 사건 발생 확률
+const CHAIN_P = 0.75; // 연쇄 조건이 맞았을 때 후속 사건이 일어날 확률
 export function simulate(seed, choices) {
   const rng = mulberry32(hashSeed(seed));
   // 사건 전용 스트림: 메인 스트림과 분리해, 사건이 없는 삶은 R1과 같은 경로를 유지
   const rngEv = mulberry32(hashSeed(seed + '-ev2'));
+  // 연쇄 전용 스트림: 연쇄가 없는 삶은 R3와 같은 경로를 유지
+  const rngChain = mulberry32(hashSeed(seed + '-chain1'));
   const c = pickWeighted(rng, COUNTRIES, (r) => r[2]);
   const [iso3, ko, births, le, gdp, urb, gini, cultureKey] = c;
   const urban = rng() * 100 < urb;
@@ -68,14 +71,25 @@ export function simulate(seed, choices) {
     played.push({ stage: st.key, title: st.title, ages: st.ages, choice: ci, tag: ch.tag, text: ch.text });
 
     // 인생 이벤트 추첨 (R2): 국가·소득·지표·이전 선택에 조건이 걸린 확률 사건
+    // 이벤트 연쇄 (R4): 이전 구간에서 방아쇠 사건이 실제로 일어났으면 후속 사건이 우선권을 가진다
     const tags = played.map((p) => p.tag);
+    const fired = played.filter((p) => p.event).map((p) => p.event.tag);
     const ctx = { gdp, gini, urb, urban, quintile, le, stats, money, tags, sex };
-    const pool = EVENTS.filter((e) => e.stage === st.key && e.cond(ctx));
-    if (pool.length && rngEv() < EVENT_P) {
-      const ev = pickWeighted(rngEv, pool, (e) => e.w);
+    const chainPool = CHAINS.filter((c2) => c2.stage === st.key && fired.includes(c2.from) && (!c2.cond || c2.cond(ctx)));
+    let ev = null, chainFrom = null;
+    if (chainPool.length && rngChain() < CHAIN_P) {
+      ev = pickWeighted(rngChain, chainPool, (c2) => c2.w);
+      chainFrom = ev.from;
+    } else {
+      const pool = EVENTS.filter((e) => e.stage === st.key && e.cond(ctx));
+      if (pool.length && rngEv() < EVENT_P) ev = pickWeighted(rngEv, pool, (e) => e.w);
+    }
+    if (ev) {
       stats.health += ev.fx[0]; stats.happiness += ev.fx[1]; stats.learning += ev.fx[2]; stats.relations += ev.fx[3];
       money += ev.money || 0;
-      played[played.length - 1].event = { title: ev.title, text: ev.text, fx: ev.fx, tag: ev.tag };
+      const rec = { title: ev.title, text: ev.text, fx: ev.fx, tag: ev.tag };
+      if (chainFrom) { rec.chain = true; rec.from = chainFrom; }
+      played[played.length - 1].event = rec;
     }
 
     // 이 구간을 살아서 지나갈 확률 (Gompertz, 현재 스탯 반영)
