@@ -146,18 +146,38 @@ $('#btn-event-ok').addEventListener('click', () => { $('#event-overlay').classLi
 function loadLives() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; } }
 function saveLife(life) {
   const r = life.result;
+  const evs = life.stages.filter((s) => s.event).map((s) => s.event.tag);
+  const chain = life.stages.some((s) => s.event && s.event.chain);
   const lives = loadLives();
-  lives.unshift({ seed, choices: choices.join(''), name: life.name, country: life.country, age: r.deathAge, cause: r.cause, date: new Date().toISOString().slice(0, 10) });
+  lives.unshift({ seed, choices: choices.join(''), name: life.name, country: life.country, age: r.deathAge, cause: r.cause, date: new Date().toISOString().slice(0, 10), rarityN: life.rarityN, chain, events: evs });
   localStorage.setItem(STORE, JSON.stringify(lives.slice(0, 50)));
 }
+
+// 수집 도장 (R5): 지난 생애 기록에서 얻는 수집 요소
+const STAMPS = [
+  { icon: '🌱', name: '첫걸음', desc: '첫 생애 기록', test: (L) => L.length >= 1 },
+  { icon: '🧭', name: '열 번의 삶', desc: '10생 기록', test: (L) => L.length >= 10 },
+  { icon: '🌟', name: '희귀한 탄생', desc: '5만 명 중 1명 이하의 삶', test: (L) => L.some((l) => (l.rarityN || 0) >= 50000) },
+  { icon: '🎂', name: '백 세 인생', desc: '100세 이상 장수', test: (L) => L.some((l) => l.age >= 100) },
+  { icon: '⬥', name: '연쇄의 주인공', desc: '연쇄 사건 경험', test: (L) => L.some((l) => l.chain) },
+  { icon: '🗺', name: '세계 여행자', desc: '서로 다른 5개국', test: (L) => new Set(L.map((l) => l.country)).size >= 5 },
+  { icon: '🎭', name: '파란만장', desc: '서로 다른 사건 10종', test: (L) => new Set(L.flatMap((l) => l.events || [])).size >= 10 },
+  { icon: '🏆', name: '전설의 삶', desc: '프로 데뷔 또는 재기 경험', test: (L) => L.some((l) => (l.events || []).some((t) => t === '프로 데뷔' || t === '재기')) },
+];
 function showArchive() {
   const lives = loadLives();
+  const stamps = $('#arch-stamps');
+  const got = STAMPS.filter((s) => s.test(lives)).length;
+  stamps.innerHTML = '<p class="dim stamp-head">수집 도장 ' + got + ' / ' + STAMPS.length + '</p>' + STAMPS.map((s) => {
+    const ok = s.test(lives);
+    return '<div class="stamp ' + (ok ? 'earned' : 'locked') + '"><div class="s-icon">' + s.icon + '</div><div class="s-name">' + s.name + '</div><div class="s-desc">' + s.desc + '</div></div>';
+  }).join('');
   const list = $('#arch-list');
   list.innerHTML = lives.length ? '' : '<p class="dim">아직 살아본 생이 없습니다.</p>';
   lives.forEach((l) => {
     const b = document.createElement('button');
     b.className = 'arch-item';
-    b.innerHTML = '<div class="a-name">' + l.name + ' · ' + l.country + '</div><div class="a-sub">' + l.age + '세 · ' + l.cause + ' · ' + l.date + '</div>';
+    b.innerHTML = '<div class="a-name">' + (l.chain ? '⬥ ' : '') + l.name + ' · ' + l.country + '</div><div class="a-sub">' + l.age + '세 · ' + l.cause + ' · ' + l.date + '</div>';
     b.addEventListener('click', () => {
       seed = l.seed; choices = l.choices.split('').map(Number);
       location.hash = '#s=' + seed + '-' + l.choices;
