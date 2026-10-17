@@ -1,7 +1,8 @@
 // 「다시, 지구」 엔진 — 시드 결정론적 시뮬레이션. 같은 시드 + 같은 선택 = 같은 인생.
 import { COUNTRIES, TOTAL_BIRTHS } from '../data/countries.js';
 import { ERAS } from '../data/eras.js';
-import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, EVENTS2, ERA_EVENTS, CHAINS } from '../data/content.js';
+import { NAME_POOLS_V2 } from '../data/names2.js';
+import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, EVENTS2, ERA_EVENTS, LOCAL_EVENTS, CHAINS } from '../data/content.js';
 
 export function hashSeed(str) {
   let h = 2166136261 >>> 0;
@@ -42,7 +43,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 // 반환: 지금까지의 선택으로 결정되는 인생의 현재 상태(완결이면 done: true).
 const EVENT_P = 0.5; // 구간당 사건 발생 확률
 const CHAIN_P = 0.75; // 연쇄 조건이 맞았을 때 후속 사건이 일어날 확률
-export function simulate(seed, choices, era = 'now') {
+export function simulate(seed, choices, era = 'now', ver = 'n1') {
   const rng = mulberry32(hashSeed(seed));
   // 사건 전용 스트림: 메인 스트림과 분리해, 사건이 없는 삶은 R1과 같은 경로를 유지
   const rngEv = mulberry32(hashSeed(seed + '-ev2'));
@@ -67,7 +68,15 @@ export function simulate(seed, choices, era = 'now') {
   const quintile = 1 + Math.floor(rng() * 5);
   const sex = rng() < 0.5 ? 'm' : 'f';
   const cul = CULTURES[cultureKey];
-  const name = cul.fam[Math.floor(rng() * cul.fam.length)] + ' ' + (sex === 'm' ? cul.m : cul.f)[Math.floor(rng() * 10)];
+  // 이름 풀 (R9): 링크 버전 n2부터 확장 풀과 전용 난수 스트림을 쓴다. n1 링크는 기존 풀·기존 순서 그대로 복원된다.
+  let name;
+  if (ver === 'n2') {
+    const rngName = mulberry32(hashSeed(seed + '-name2'));
+    const pool = NAME_POOLS_V2[cultureKey];
+    name = pool.fam[Math.floor(rngName() * pool.fam.length)] + ' ' + (sex === 'm' ? pool.m : pool.f)[Math.floor(rngName() * (sex === 'm' ? pool.m.length : pool.f.length))];
+  } else {
+    name = cul.fam[Math.floor(rng() * cul.fam.length)] + ' ' + (sex === 'm' ? cul.m : cul.f)[Math.floor(rng() * 10)];
+  }
 
   const startBonus = (3 - quintile) * 3;
   const stats = { health: 50 + startBonus, happiness: 50 + startBonus, learning: 50 + startBonus, relations: 50 };
@@ -96,7 +105,8 @@ export function simulate(seed, choices, era = 'now') {
       chainFrom = ev.from;
     } else {
       const pool2 = EVENTS2.filter((e2) => e2.stage === st.key && e2.cond(ctx))
-        .concat(ERA_EVENTS.filter((e2) => e2.era === era && e2.stage === st.key && e2.cond(ctx)));
+        .concat(ERA_EVENTS.filter((e2) => e2.era === era && e2.stage === st.key && e2.cond(ctx)))
+        .concat(ver === 'n2' ? LOCAL_EVENTS.filter((e2) => e2.culture === cultureKey && e2.stage === st.key && e2.cond(ctx)) : []);
       if (pool2.length && rngEv2() < EVENT_P) {
         ev = pickWeighted(rngEv2, pool2, (e2) => e2.w);
       } else {
@@ -161,7 +171,7 @@ export function simulate(seed, choices, era = 'now') {
     sex, name, culture: cul.label, stats, le, gdp, gini, urb,
     rarity: births / totalBirths, rarityN,
     stages: played, done, result,
-    era, countryRows, totalBirths,
+    era, ver, countryRows, totalBirths,
   };
 }
 
