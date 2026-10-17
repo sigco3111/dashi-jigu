@@ -1,6 +1,6 @@
 // 「다시, 지구」 엔진 — 시드 결정론적 시뮬레이션. 같은 시드 + 같은 선택 = 같은 인생.
 import { COUNTRIES, TOTAL_BIRTHS } from '../data/countries.js';
-import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, CHAINS } from '../data/content.js';
+import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, EVENTS2, CHAINS } from '../data/content.js';
 
 export function hashSeed(str) {
   let h = 2166136261 >>> 0;
@@ -47,6 +47,8 @@ export function simulate(seed, choices) {
   const rngEv = mulberry32(hashSeed(seed + '-ev2'));
   // 연쇄 전용 스트림: 연쇄가 없는 삶은 R3와 같은 경로를 유지
   const rngChain = mulberry32(hashSeed(seed + '-chain1'));
+  // 새 선택 사건 전용 스트림 (R6): 새 선택을 하지 않은 삶은 풀이 비어 이 스트림을 소비하지 않음
+  const rngEv2 = mulberry32(hashSeed(seed + '-ev3'));
   const c = pickWeighted(rng, COUNTRIES, (r) => r[2]);
   const [iso3, ko, births, le, gdp, urb, gini, cultureKey] = c;
   const urban = rng() * 100 < urb;
@@ -81,8 +83,13 @@ export function simulate(seed, choices) {
       ev = pickWeighted(rngChain, chainPool, (c2) => c2.w);
       chainFrom = ev.from;
     } else {
-      const pool = EVENTS.filter((e) => e.stage === st.key && e.cond(ctx));
-      if (pool.length && rngEv() < EVENT_P) ev = pickWeighted(rngEv, pool, (e) => e.w);
+      const pool2 = EVENTS2.filter((e2) => e2.stage === st.key && e2.cond(ctx));
+      if (pool2.length && rngEv2() < EVENT_P) {
+        ev = pickWeighted(rngEv2, pool2, (e2) => e2.w);
+      } else {
+        const pool = EVENTS.filter((e) => e.stage === st.key && e.cond(ctx));
+        if (pool.length && rngEv() < EVENT_P) ev = pickWeighted(rngEv, pool, (e) => e.w);
+      }
     }
     if (ev) {
       stats.health += ev.fx[0]; stats.happiness += ev.fx[1]; stats.learning += ev.fx[2]; stats.relations += ev.fx[3];
