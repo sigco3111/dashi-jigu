@@ -79,6 +79,7 @@ function renderHud(stats) {
 
 function renderStage() {
   $('#death-overlay').classList.add('hidden');
+  $('#event-overlay').classList.add('hidden');
   const life = simulate(seed, choices);
   renderHud(life.stats);
   if (life.done) { showDeath(life); return; }
@@ -100,7 +101,9 @@ function renderStage() {
       location.hash = '#s=' + seed + '-' + choices.join('');
       const after = simulate(seed, choices);
       renderHud(after.stats);
-      setTimeout(renderStage, 450);
+      const ev = after.stages[i] && after.stages[i].event;
+      if (ev) { setTimeout(() => showEvent(ev), 450); }
+      else setTimeout(renderStage, 450);
     });
     box.appendChild(b);
   });
@@ -114,6 +117,17 @@ function showDeath(life) {
 }
 
 $('#btn-card').addEventListener('click', () => { $('#death-overlay').classList.add('hidden'); renderCard(simulate(seed, choices)); show('#scr-card'); });
+
+// ---------- 인생 이벤트 (R2) ----------
+function showEvent(ev) {
+  $('#e-title').textContent = ev.title;
+  $('#e-text').textContent = ev.text;
+  const labels = ['건강', '행복', '배움', '관계'];
+  const parts = ev.fx.map((v, i2) => (v ? labels[i2] + (v > 0 ? ' +' : ' ') + v : null)).filter(Boolean);
+  $('#e-fx').textContent = parts.join(' · ');
+  $('#event-overlay').classList.remove('hidden');
+}
+$('#btn-event-ok').addEventListener('click', () => { $('#event-overlay').classList.add('hidden'); renderStage(); });
 
 // ---------- 기록 ----------
 function loadLives() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; } }
@@ -178,7 +192,8 @@ function renderCard(life) {
     const t = n === 0 ? 0 : i / n;
     const y = 1000 - t * 660;
     const x = 500 + Math.sin(i * 1.05 + 0.4) * 190;
-    pts.push({ x, y, age, tag: i === 0 ? '태어남' : life.stages[i - 1].tag, title: i === 0 ? life.country : life.stages[i - 1].title });
+    const evTag = i === 0 ? null : (life.stages[i - 1].event ? life.stages[i - 1].event.tag : null);
+    pts.push({ x, y, age, tag: i === 0 ? '태어남' : life.stages[i - 1].tag, title: i === 0 ? life.country : life.stages[i - 1].title, eventTag: evTag });
   }
   ctx.strokeStyle = 'rgba(255,217,160,.75)';
   ctx.lineWidth = 5;
@@ -208,6 +223,11 @@ function renderCard(life) {
     ctx.fillStyle = '#9aa3bd';
     ctx.font = '20px sans-serif';
     ctx.fillText(p.age + '세', tx, p.y + 28);
+    if (p.eventTag) {
+      ctx.fillStyle = '#7fd4c1';
+      ctx.font = '600 18px sans-serif';
+      ctx.fillText('◆ ' + p.eventTag, tx, p.y + 52);
+    }
     ctx.textAlign = 'left';
   });
 
@@ -233,7 +253,8 @@ function renderCard(life) {
 
   ctx.fillStyle = '#5c6685';
   ctx.font = '18px sans-serif';
-  ctx.fillText('산 나이 ' + r.deathAge + '세 · 사인 ' + r.cause + ' · 이 삶의 확률 ' + life.rarityN + '명 중 1명', 56, H - 26);
+  const evN = life.stages.filter((s2) => s2.event).length;
+  ctx.fillText('산 나이 ' + r.deathAge + '세 · 사인 ' + r.cause + ' · 인생 사건 ' + evN + '건 · 이 삶의 확률 ' + life.rarityN + '명 중 1명', 56, H - 26);
   ctx.textAlign = 'right';
   ctx.fillText('데이터: 세계은행 WDI (CC BY 4.0) · 시드 ' + life.seed, W - 56, H - 26);
   ctx.textAlign = 'left';
