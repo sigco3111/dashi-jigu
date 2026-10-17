@@ -333,9 +333,9 @@ function renderCard(life) {
   ctx.fillStyle = '#5c6685';
   ctx.font = '18px sans-serif';
   const evN = life.stages.filter((s2) => s2.event).length;
-  ctx.fillText('산 나이 ' + r.deathAge + '세 · 사인 ' + r.cause + ' · 인생 사건 ' + evN + '건 · 이 삶의 확률 ' + life.rarityN + '명 중 1명', 56, H - 26);
+  ctx.fillText('산 나이 ' + r.deathAge + '세 · 사인 ' + r.cause + ' · 인생 사건 ' + evN + '건 · 이 삶의 확률 ' + life.rarityN + '명 중 1명', 56, H - 48);
   ctx.textAlign = 'right';
-  ctx.fillText('데이터: 세계은행 WDI (CC BY 4.0) · 시드 ' + life.seed, W - 56, H - 26);
+  ctx.fillText('데이터: 세계은행 WDI (CC BY 4.0) · 시드 ' + life.seed, W - 56, H - 18);
   ctx.textAlign = 'left';
 }
 function roundRect(ctx, x, y, w, h, r) {
