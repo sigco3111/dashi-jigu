@@ -18,7 +18,7 @@ const fmtUsd = (n) => '$' + n.toLocaleString('en-US');
 const pct = (x) => (x * 100 >= 0.1 ? (x * 100).toFixed(1) : (x * 100).toFixed(2));
 
 // ---------- 시작 ----------
-$('#btn-born').addEventListener('click', () => { seed = randomSeed(); choices = []; ver = 'n2'; showBirth(); });
+$('#btn-born').addEventListener('click', () => { seed = randomSeed(); choices = []; ver = 'n3'; showBirth(); });
 $('#btn-archive').addEventListener('click', showArchive);
 $('#btn-arch-back').addEventListener('click', () => { location.hash = ''; show('#scr-start'); });
 
@@ -30,7 +30,7 @@ eraBtns.forEach((b) => {
     era = b.dataset.era;
   });
 });
-function eraSuffix() { return (era !== 'now' ? '-e' + era : '') + (ver === 'n2' ? '-n2' : ''); }
+function eraSuffix() { return (era !== 'now' ? '-e' + era : '') + (ver !== 'n1' ? '-' + ver : ''); }
 
 // ---------- 탄생 ----------
 function showBirth() {
@@ -384,17 +384,17 @@ $('#btn-share').addEventListener('click', async (e) => {
   }
   setTimeout(() => { e.target.textContent = '링크 복사'; }, 1600);
 });
-$('#btn-again').addEventListener('click', () => { seed = randomSeed(); choices = []; ver = 'n2'; location.hash = ''; showBirth(); });
+$('#btn-again').addEventListener('click', () => { seed = randomSeed(); choices = []; ver = 'n3'; location.hash = ''; showBirth(); });
 $('#btn-home').addEventListener('click', () => { location.hash = ''; show('#scr-start'); });
 
 // ---------- 공유 링크 재현 ----------
 (function boot() {
-  const m = location.hash.match(/^#s=([a-z0-9]{6})-(\d{1,8})(?:-e(\d{4}))?(-n2)?$/);
+  const m = location.hash.match(/^#s=([a-z0-9]{6})-(\d{1,8})(?:-e(\d{4}))?(-n[23])?$/);
   if (m) {
     seed = m[1];
     choices = m[2].split('').map(Number);
     era = m[3] || 'now';
-    ver = m[4] ? 'n2' : 'n1';
+    ver = m[4] ? m[4].slice(1) : 'n1';
     eraBtns.forEach((x) => x.classList.toggle('active', x.dataset.era === era));
     const life = simulate(seed, choices, era, ver);
     if (life.done) { renderCard(life); show('#scr-card'); return; }
