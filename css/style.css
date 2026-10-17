@@ -87,3 +87,10 @@ h1 { font-size: 44px; margin: 0; letter-spacing: -0.02em; color: var(--warm); te
 #event-overlay h3 { margin: 4px 0 10px; font-size: 24px; color: var(--warm); }
 #e-text { line-height: 1.75; margin: 0 0 10px; }
 #e-fx { font-size: 14px; letter-spacing: .02em; margin: 0 0 12px; }
+
+#d-report { margin: 14px 0 16px; text-align: left; }
+.rep-row { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.55; }
+.rep-row:first-child { border-top: none; }
+.rep-k { flex: 0 0 34px; color: var(--accent); font-weight: 700; }
+.rep-v { color: var(--dim); flex: 1; }
+#death-overlay .panel { max-height: 86vh; overflow-y: auto; }
