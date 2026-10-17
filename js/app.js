@@ -1,4 +1,4 @@
-import { simulate, randomSeed, hashSeed, mulberry32 } from './engine.js';
+import { simulate, randomSeed, hashSeed, mulberry32, lifeReport } from './engine.js';
 import { STAGES } from '../data/content.js';
 
 const $ = (s) => document.querySelector(s);
@@ -109,9 +109,20 @@ function renderStage() {
   });
 }
 
+function fmtDiff(n) { return n === 0 ? '0년' : (n > 0 ? Math.abs(n) + '년 더 길게' : Math.abs(n) + '년 더 짧게'); }
 function showDeath(life) {
   const r = life.result;
   $('#d-text').innerHTML = '<strong>' + life.name + '</strong><br>' + r.deathAge + '세 · ' + r.cause;
+  const rep = lifeReport(life);
+  if (rep) {
+    const rows = [
+      ['수명', life.country + ' 기대수명(' + rep.countryLE + '세)보다 ' + fmtDiff(rep.diffCountry) + ' · 세계 평균(' + rep.worldLE + '세)보다 ' + fmtDiff(rep.diffWorld)],
+      ['동갑', '같은 해 태어난 세계 아기의 약 ' + rep.diedEarlierPct + '%가 당신보다 먼저 세상을 떠났습니다 (추정)'],
+      ['소득', '추정 연 소득 ' + fmtUsd(r.income) + ' — ' + life.country + ' 안에서 상위 ' + rep.incomeTopCountryPct + '% · 세계 동갑 기준 상위 ' + rep.incomeTopWorldPct + '% (추정)'],
+    ];
+    $('#d-report').innerHTML = rows.map(([k, v]) =>
+      '<div class="rep-row"><span class="rep-k">' + k + '</span><span class="rep-v">' + v + '</span></div>').join('');
+  } else { $('#d-report').innerHTML = ''; }
   $('#death-overlay').classList.remove('hidden');
   saveLife(life);
 }
