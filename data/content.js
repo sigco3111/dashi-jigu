@@ -295,3 +295,92 @@ export const ERA_EVENTS = [
     text: '첫 휴대전화가 생겼습니다. 짧은 문자 한 통에도 하루가 설렜습니다.',
     fx: [0, 4, 0, 1] },
 ];
+
+// 지역 사건 (R9): 태어난 문화권에서만 걸리는 사건. 기후·학교·이주처럼 널리 알려진 지역의 일상만 담고,
+// 특정 집단을 희화화하거나 검증할 수 없는 사실을 단정하지 않는다. 링크 버전 n2 이상의 삶에만 적용된다.
+export const LOCAL_EVENTS = [
+  // 한국
+  { culture: 'korean', stage: 'child', w: 90, cond: () => true, tag: '태권도 학원', title: '노란 띠의 아이',
+    text: '동네 태권도 학원에 다니기 시작했습니다. 발차기 소리에 겁 없는 하루하루가 자랐습니다.', fx: [4, 2, 0, 0] },
+  { culture: 'korean', stage: 'teen', w: 90, cond: () => true, tag: '수능의 겨울', title: '수능의 겨울',
+    text: '대학 입시를 향해 모두가 달리는 계절이었습니다. 새벽의 책상이 세상의 전부처럼 느껴졌습니다.', fx: [0, -2, 5, 0] },
+  { culture: 'korean', stage: 'youth', w: 90, cond: (ctx) => ctx.sex === 'm', tag: '국방의 시간', title: '국방의 시간',
+    text: '군대에 다녀왔습니다. 제대 후의 세상은 조금 다르게 보였습니다.', fx: [3, -1, 0, 3] },
+  // 중화권
+  { culture: 'chinese', stage: 'child', w: 90, cond: () => true, tag: '아침 체조', title: '공원의 아침 체조',
+    text: '새벽 공원에서 어른들과 함께 체조를 따라 했습니다. 해 뜨는 소리가 들리는 것 같았습니다.', fx: [3, 2, 0, 1] },
+  { culture: 'chinese', stage: 'teen', w: 90, cond: () => true, tag: '가오카오', title: '가오카오의 여름',
+    text: '인생을 가른다는 대학입시를 치렀습니다. 시험지 너머에 넓은 세상이 기다리고 있었습니다.', fx: [0, -2, 5, 0] },
+  { culture: 'chinese', stage: 'prime', w: 90, cond: () => true, tag: '춘절 귀향', title: '춘절의 귀향',
+    text: '새해를 앞두고 고향으로 향하는 길, 기차 안은 고향으로 가는 사람들로 가득했습니다.', fx: [0, 3, 0, 3] },
+  // 일본
+  { culture: 'japanese', stage: 'child', w: 90, cond: () => true, tag: '운동회', title: '운동회의 가을',
+    text: '학교 운동회에서 힘껏 달렸습니다. 도시락을 펼친 가족의 웃음이 함께 기억납니다.', fx: [2, 3, 0, 2] },
+  { culture: 'japanese', stage: 'teen', w: 90, cond: () => true, tag: '부활동', title: '부활동의 방과후',
+    text: '부활동에 매진한 시절이 있었습니다. 선배와 후배 사이에서 배운 것들이 오래 남았습니다.', fx: [2, 2, 1, 2] },
+  { culture: 'japanese', stage: 'senior', w: 90, cond: () => true, tag: '벚꽃', title: '벚꽃 아래의 봄',
+    text: '벚꽃 아래에서 지난날을 돌아봅니다. 짧게 지는 꽃이 오래 기억에 남듯이.', fx: [0, 4, 0, 2] },
+  // 남아시아
+  { culture: 'southasia', stage: 'child', w: 90, cond: () => true, tag: '골목 크리켓', title: '골목 크리켓',
+    text: '골목에서 날마다 크리켓을 했습니다. 낡은 공 하나가 최고의 보물이었습니다.', fx: [3, 3, 0, 1] },
+  { culture: 'southasia', stage: 'teen', w: 90, cond: () => true, tag: '몬순', title: '몬순의 계절',
+    text: '몬순 비가 한여름의 땅을 적셨습니다. 쏟아지는 비 소리에 잠 못 드는 밤도 많았습니다.', fx: [-1, 2, 0, 0] },
+  { culture: 'southasia', stage: 'prime', w: 90, cond: () => true, tag: '결혼식 시즌', title: '결혼식 시즌',
+    text: '결혼식 시즌이면 온 가족이 며칠씩 잔치를 벌였습니다. 춤과 음식과 친척들의 웃음이 가득했습니다.', fx: [0, 3, 0, 3] },
+  // 동남아시아
+  { culture: 'southeastasia', stage: 'child', w: 90, cond: () => true, tag: '열대 소나기', title: '열대의 소나기',
+    text: '오후마다 쏟아지는 소나기를 피해 뛰었습니다. 비 그친 뒤의 무지개는 언제나 값진 상이었습니다.', fx: [1, 3, 0, 0] },
+  { culture: 'southeastasia', stage: 'teen', w: 90, cond: () => true, tag: '첫 오토바이', title: '첫 오토바이',
+    text: '낡은 오토바이를 처음 몰아 봤습니다. 온 동네가 손에 잡힐 듯 가까워졌습니다.', fx: [1, 3, 0, 0] },
+  { culture: 'southeastasia', stage: 'prime', w: 90, cond: () => true, tag: '바다 건너 일자리', title: '먼 바다 건너의 일자리',
+    text: '가족을 위해 바다 건너 일하러 간 이웃이 많았습니다. 나도 한때 그 길을 두고 고민했습니다.', fx: [0, -1, 1, 1] },
+  // 중동·북아프리카
+  { culture: 'mena', stage: 'child', w: 90, cond: () => true, tag: '뜨거운 오후', title: '뜨거운 오후의 그늘',
+    text: '여름 오후의 뜨거운 햇살을 피해 그늘에서 놀았습니다. 시원한 물 한 모금이 꿀맛이었습니다.', fx: [1, 2, 0, 0] },
+  { culture: 'mena', stage: 'teen', w: 90, cond: () => true, tag: '라마단의 밤', title: '라마단 달의 밤',
+    text: '라마단이면 온 동네가 밤에 깨어났습니다. 이슥한 골목에도 불이 환하고 사람이 많았습니다.', fx: [0, 2, 0, 3] },
+  { culture: 'mena', stage: 'prime', w: 90, cond: () => true, tag: '사막 너머 일자리', title: '사막 너머의 일자리',
+    text: '일자리를 찾아 사막 너머 부유한 도시로 가는 사람들을 배웅했습니다. 언젠가 나도 그 길을 택할지 몰랐습니다.', fx: [0, -1, 2, 0] },
+  // 사하라 이남 아프리카
+  { culture: 'africa', stage: 'child', w: 90, cond: () => true, tag: '해질녘 축구', title: '해질녘 축구',
+    text: '해 질 녘 흙마당에서 공을 찼습니다. 골대는 돌멩이 두 개면 충분했습니다.', fx: [3, 3, 0, 1] },
+  { culture: 'africa', stage: 'teen', w: 90, cond: () => true, tag: '시장의 장사', title: '시장에서 배운 장사',
+    text: '시장 한켠에서 장사를 도우며 사람 다루는 법을 배웠습니다. 흥정은 기술이었습니다.', fx: [0, 1, 2, 2] },
+  { culture: 'africa', stage: 'prime', w: 90, cond: () => true, tag: '도시행 버스', title: '도시로 가는 버스',
+    text: '기회를 찾아 도시로 향하는 버스에 몸을 실었습니다. 창밖의 풍경이 빠르게 달라졌습니다.', fx: [0, 1, 2, -1] },
+  // 라틴아메리카
+  { culture: 'latam', stage: 'child', w: 90, cond: () => true, tag: '골목 축구', title: '골목의 축구공',
+    text: '골목에서 축구공만 쫓던 시절, 득점할 때마다 세계 챔피언이 된 기분이었습니다.', fx: [3, 3, 0, 1] },
+  { culture: 'latam', stage: 'teen', w: 90, cond: () => true, tag: '동네 축제', title: '동네 축제의 밤',
+    text: '동네 축제의 밤, 음악과 춤이 새벽까지 이어졌습니다. 온 가족이 함께 춤을 췄습니다.', fx: [0, 4, 0, 2] },
+  { culture: 'latam', stage: 'prime', w: 90, cond: () => true, tag: '먼 길의 가족', title: '먼 길을 떠난 가족',
+    text: '일자리를 찾아 멀리 떠난 가족의 소식을 전화로 들었습니다. 희생과 그리움이 한 집안을 지탱했습니다.', fx: [0, -1, 0, 2] },
+  // 유럽
+  { culture: 'europe', stage: 'teen', w: 90, cond: () => true, tag: '어학 수업', title: '두 나라 말의 수업',
+    text: '학교에서 두세 나라 말을 배웠습니다. 국경이 가까운 만큼 세계도 가까웠습니다.', fx: [0, 1, 3, 0] },
+  { culture: 'europe', stage: 'prime', w: 90, cond: () => true, tag: '국경 너머 직장', title: '국경 너머의 직장',
+    text: '국경을 넘어 다니는 통근자가 흔한 곳이었습니다. 다른 나라의 직장도 멀지 않았습니다.', fx: [0, 1, 2, 0] },
+  { culture: 'europe', stage: 'oldage', w: 90, cond: () => true, tag: '겨울 시장', title: '겨울 시장의 불빛',
+    text: '겨울 시장의 불빛 아래를 거닐었습니다. 따뜻한 음료 한 잔에 계절이 포근해졌습니다.', fx: [1, 3, 0, 2] },
+  // 중앙아시아
+  { culture: 'centralasia', stage: 'child', w: 90, cond: () => true, tag: '초원의 바람', title: '초원의 바람',
+    text: '끝없이 펼쳐진 초원의 바람 속에서 자랐습니다. 하늘이 세상의 반이었습니다.', fx: [2, 2, 0, 0] },
+  { culture: 'centralasia', stage: 'teen', w: 90, cond: () => true, tag: '어머니의 빵', title: '어머니의 빵',
+    text: '화덕에서 갓 꺼낸 빵 냄새가 집안을 채웠습니다. 손님에게 빵을 나누는 법부터 배웠습니다.', fx: [1, 2, 0, 2] },
+  { culture: 'centralasia', stage: 'prime', w: 90, cond: () => true, tag: '북쪽의 일자리', title: '북쪽 도시의 일자리',
+    text: '일을 찾아 북쪽 큰 도시로 떠나는 사람이 많았습니다. 고향에 돈을 부치는 게 자랑이자 책임이었습니다.', fx: [0, -1, 2, 0] },
+  // 북미
+  { culture: 'northam', stage: 'child', w: 90, cond: () => true, tag: '스카우트 캠프', title: '스카우트 캠프',
+    text: '여름 캠프에서 텐트를 치고 모닥불을 피웠습니다. 별이 쏟아지는 밤하늘을 처음 봤습니다.', fx: [2, 3, 1, 1] },
+  { culture: 'northam', stage: 'teen', w: 90, cond: () => true, tag: '운전면허', title: '운전면허 시험',
+    text: '운전면허를 땄습니다. 핸들을 쥔 순간, 갈 수 있는 세계가 몇 배로 넓어졌습니다.', fx: [0, 3, 0, 0] },
+  { culture: 'northam', stage: 'prime', w: 90, cond: () => true, tag: '학자금 대출', title: '학자금 대출의 달',
+    text: '학자금 대출 상환 고지서가 매달 날아왔습니다. 공부한 값을 오래오래 갚아 나갔습니다.', fx: [0, -2, 1, 0] },
+  // 오세아니아
+  { culture: 'oceania', stage: 'child', w: 90, cond: () => true, tag: '해변의 여름', title: '해변의 여름',
+    text: '여름이면 해변에서 하루를 보냈습니다. 파도 소리가 자장가였습니다.', fx: [2, 3, 0, 0] },
+  { culture: 'oceania', stage: 'teen', w: 90, cond: () => true, tag: '바다 수영', title: '바다에서 배운 수영',
+    text: '바다에서 헤엄치는 법을 배웠습니다. 물을 두려워하지 않는 게 이곳의 자격증이었습니다.', fx: [3, 2, 0, 0] },
+  { culture: 'oceania', stage: 'prime', w: 90, cond: () => true, tag: '바다 건너 일자리', title: '태평양 건너의 일자리',
+    text: '더 큰 도시와 나라로 일하러 가는 친구들을 배웅했습니다. 섬의 하늘은 그대로인데 사람은 줄어들었습니다.', fx: [0, -1, 1, 0] },
+];
