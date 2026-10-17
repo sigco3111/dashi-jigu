@@ -2,7 +2,7 @@
 import { COUNTRIES, TOTAL_BIRTHS } from '../data/countries.js';
 import { ERAS } from '../data/eras.js';
 import { NAME_POOLS_V2 } from '../data/names2.js';
-import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, EVENTS2, ERA_EVENTS, LOCAL_EVENTS, CHAINS } from '../data/content.js';
+import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, EVENTS2, ERA_EVENTS, LOCAL_EVENTS, FAMILY_EVENTS, FAMILY_CHAINS, CHAINS } from '../data/content.js';
 
 export function hashSeed(str) {
   let h = 2166136261 >>> 0;
@@ -70,7 +70,7 @@ export function simulate(seed, choices, era = 'now', ver = 'n1') {
   const cul = CULTURES[cultureKey];
   // 이름 풀 (R9): 링크 버전 n2부터 확장 풀과 전용 난수 스트림을 쓴다. n1 링크는 기존 풀·기존 순서 그대로 복원된다.
   let name;
-  if (ver === 'n2') {
+  if (ver !== 'n1') {
     const rngName = mulberry32(hashSeed(seed + '-name2'));
     const pool = NAME_POOLS_V2[cultureKey];
     name = pool.fam[Math.floor(rngName() * pool.fam.length)] + ' ' + (sex === 'm' ? pool.m : pool.f)[Math.floor(rngName() * (sex === 'm' ? pool.m.length : pool.f.length))];
@@ -98,7 +98,8 @@ export function simulate(seed, choices, era = 'now', ver = 'n1') {
     const tags = played.map((p) => p.tag);
     const fired = played.filter((p) => p.event).map((p) => p.event.tag);
     const ctx = { gdp, gini, urb, urban, quintile, le, stats, money, tags, sex, era };
-    const chainPool = CHAINS.filter((c2) => c2.stage === st.key && fired.includes(c2.from) && (!c2.cond || c2.cond(ctx)));
+    const chainSrc = ver === 'n3' ? CHAINS.concat(FAMILY_CHAINS) : CHAINS;
+    const chainPool = chainSrc.filter((c2) => c2.stage === st.key && fired.includes(c2.from) && (!c2.cond || c2.cond(ctx)));
     let ev = null, chainFrom = null;
     if (chainPool.length && rngChain() < CHAIN_P) {
       ev = pickWeighted(rngChain, chainPool, (c2) => c2.w);
@@ -106,7 +107,8 @@ export function simulate(seed, choices, era = 'now', ver = 'n1') {
     } else {
       const pool2 = EVENTS2.filter((e2) => e2.stage === st.key && e2.cond(ctx))
         .concat(ERA_EVENTS.filter((e2) => e2.era === era && e2.stage === st.key && e2.cond(ctx)))
-        .concat(ver === 'n2' ? LOCAL_EVENTS.filter((e2) => e2.culture === cultureKey && e2.stage === st.key && e2.cond(ctx)) : []);
+        .concat(ver !== 'n1' ? LOCAL_EVENTS.filter((e2) => e2.culture === cultureKey && e2.stage === st.key && e2.cond(ctx)) : [])
+        .concat(ver === 'n3' ? FAMILY_EVENTS.filter((e2) => e2.stage === st.key && e2.cond(ctx)) : []);
       if (pool2.length && rngEv2() < EVENT_P) {
         ev = pickWeighted(rngEv2, pool2, (e2) => e2.w);
       } else {
