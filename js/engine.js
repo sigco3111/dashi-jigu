@@ -1,6 +1,7 @@
 // 「다시, 지구」 엔진 — 시드 결정론적 시뮬레이션. 같은 시드 + 같은 선택 = 같은 인생.
 import { COUNTRIES, TOTAL_BIRTHS } from '../data/countries.js';
-import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, EVENTS2, CHAINS } from '../data/content.js';
+import { ERAS } from '../data/eras.js';
+import { CULTURES, STAGES, CAUSES, JOBS, WEALTH_LABEL, EVENTS, EVENTS2, ERA_EVENTS, CHAINS } from '../data/content.js';
 
 export function hashSeed(str) {
   let h = 2166136261 >>> 0;
@@ -41,7 +42,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 // 반환: 지금까지의 선택으로 결정되는 인생의 현재 상태(완결이면 done: true).
 const EVENT_P = 0.5; // 구간당 사건 발생 확률
 const CHAIN_P = 0.75; // 연쇄 조건이 맞았을 때 후속 사건이 일어날 확률
-export function simulate(seed, choices) {
+export function simulate(seed, choices, era = 'now') {
   const rng = mulberry32(hashSeed(seed));
   // 사건 전용 스트림: 메인 스트림과 분리해, 사건이 없는 삶은 R1과 같은 경로를 유지
   const rngEv = mulberry32(hashSeed(seed + '-ev2'));
@@ -49,7 +50,18 @@ export function simulate(seed, choices) {
   const rngChain = mulberry32(hashSeed(seed + '-chain1'));
   // 새 선택 사건 전용 스트림 (R6): 새 선택을 하지 않은 삶은 풀이 비어 이 스트림을 소비하지 않음
   const rngEv2 = mulberry32(hashSeed(seed + '-ev3'));
-  const c = pickWeighted(rng, COUNTRIES, (r) => r[2]);
+  // 시대 모드 (R8): era !== 'now'이면 그 시대의 출생아 수·기대수명·GDP·도시화로 나라를 뽑는다.
+  // 'now'는 기존 배열을 그대로 써서 옛 링크와 바이트 단위로 같다.
+  let countryRows = COUNTRIES, totalBirths = TOTAL_BIRTHS;
+  if (era !== 'now' && ERAS[era]) {
+    const E = ERAS[era];
+    countryRows = COUNTRIES.filter((c2) => E.rows[c2[0]]).map((c2) => {
+      const er = E.rows[c2[0]];
+      return [c2[0], c2[1], er[0], er[1], er[2], er[3], c2[6], c2[7]];
+    });
+    totalBirths = E.total;
+  }
+  const c = pickWeighted(rng, countryRows, (r) => r[2]);
   const [iso3, ko, births, le, gdp, urb, gini, cultureKey] = c;
   const urban = rng() * 100 < urb;
   const quintile = 1 + Math.floor(rng() * 5);
@@ -76,14 +88,15 @@ export function simulate(seed, choices) {
     // 이벤트 연쇄 (R4): 이전 구간에서 방아쇠 사건이 실제로 일어났으면 후속 사건이 우선권을 가진다
     const tags = played.map((p) => p.tag);
     const fired = played.filter((p) => p.event).map((p) => p.event.tag);
-    const ctx = { gdp, gini, urb, urban, quintile, le, stats, money, tags, sex };
+    const ctx = { gdp, gini, urb, urban, quintile, le, stats, money, tags, sex, era };
     const chainPool = CHAINS.filter((c2) => c2.stage === st.key && fired.includes(c2.from) && (!c2.cond || c2.cond(ctx)));
     let ev = null, chainFrom = null;
     if (chainPool.length && rngChain() < CHAIN_P) {
       ev = pickWeighted(rngChain, chainPool, (c2) => c2.w);
       chainFrom = ev.from;
     } else {
-      const pool2 = EVENTS2.filter((e2) => e2.stage === st.key && e2.cond(ctx));
+      const pool2 = EVENTS2.filter((e2) => e2.stage === st.key && e2.cond(ctx))
+        .concat(ERA_EVENTS.filter((e2) => e2.era === era && e2.stage === st.key && e2.cond(ctx)));
       if (pool2.length && rngEv2() < EVENT_P) {
         ev = pickWeighted(rngEv2, pool2, (e2) => e2.w);
       } else {
@@ -142,12 +155,13 @@ export function simulate(seed, choices) {
     result = { deathAge, cause, income, wealthLeft, hasPartner, children, job };
   }
 
-  const rarityN = Math.max(1, Math.round(TOTAL_BIRTHS / births));
+  const rarityN = Math.max(1, Math.round(totalBirths / births));
   return {
     seed, iso3, country: ko, urban, quintile, wealthLabel: WEALTH_LABEL[quintile - 1],
     sex, name, culture: cul.label, stats, le, gdp, gini, urb,
-    rarity: births / TOTAL_BIRTHS, rarityN,
+    rarity: births / totalBirths, rarityN,
     stages: played, done, result,
+    era, countryRows, totalBirths,
   };
 }
 
@@ -160,38 +174,40 @@ function normCdf(x) {
   return x > 0 ? 1 - p : p;
 }
 // 같은 해 출생 코호트 기준 세계 평균 (출생아 수 가중)
-export function worldAverages() {
+export function worldAverages(rows = COUNTRIES, total = TOTAL_BIRTHS) {
   let le = 0, gdp = 0, gini = 0;
-  for (const c of COUNTRIES) { le += c[3] * c[2]; gdp += c[4] * c[2]; gini += c[6] * c[2]; }
-  return { le: le / TOTAL_BIRTHS, gdp: gdp / TOTAL_BIRTHS, gini: gini / TOTAL_BIRTHS };
+  for (const c of rows) { le += c[3] * c[2]; gdp += c[4] * c[2]; gini += c[6] * c[2]; }
+  return { le: le / total, gdp: gdp / total, gini: gini / total };
 }
 // 같은 해 태어난 세계 아기 가운데 age세까지 살아남는 비율 (나라별 기대수명·Gompertz, 추정)
-export function cohortSurvival(age) {
+export function cohortSurvival(age, rows = COUNTRIES, total = TOTAL_BIRTHS) {
   let s = 0;
-  for (const c of COUNTRIES) s += c[2] * gompS(age, gompA(clamp(c[3], 40, 100)));
-  return s / TOTAL_BIRTHS;
+  for (const c of rows) s += c[2] * gompS(age, gompA(clamp(c[3], 40, 100)));
+  return s / total;
 }
 // 사망 시점 리포트: 수명 비교 + 동갑 생존 + 소득 백분위 (로그정규 모델 추정)
 export function lifeReport(life) {
   const r = life.result;
   if (!r) return null;
-  const w = worldAverages();
+  const rows = life.countryRows || COUNTRIES;
+  const total = life.totalBirths || TOTAL_BIRTHS;
+  const w = worldAverages(rows, total);
   const sigC = clamp(life.gini / 100, 0.25, 0.65);
   const inc = Math.max(r.income, 1);
   const topC = (1 - normCdf(Math.log(inc / life.gdp) / sigC)) * 100;
   // 세계 백분위: 나라별 로그정규 분포를 출생아 수로 가중한 혼합 분포 (추정)
   let below = 0;
-  for (const c of COUNTRIES) {
+  for (const c of rows) {
     const sig = clamp(c[6] / 100, 0.25, 0.65);
     below += c[2] * normCdf(Math.log(inc / c[4]) / sig);
   }
-  const topW = (1 - below / TOTAL_BIRTHS) * 100;
+  const topW = (1 - below / total) * 100;
   return {
     countryLE: life.le,
     worldLE: Math.round(w.le * 10) / 10,
     diffCountry: Math.round((r.deathAge - life.le) * 10) / 10,
     diffWorld: Math.round((r.deathAge - w.le) * 10) / 10,
-    diedEarlierPct: Math.round(clamp((1 - cohortSurvival(r.deathAge)) * 100, 0.1, 99.9) * 10) / 10,
+    diedEarlierPct: Math.round(clamp((1 - cohortSurvival(r.deathAge, rows, total)) * 100, 0.1, 99.9) * 10) / 10,
     incomeTopCountryPct: Math.round(clamp(topC, 0.1, 99.9) * 10) / 10,
     incomeTopWorldPct: Math.round(clamp(topW, 0.1, 99.9) * 10) / 10,
   };
