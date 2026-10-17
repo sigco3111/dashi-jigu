@@ -92,3 +92,118 @@ export const JOBS = [
 ];
 
 export const WEALTH_LABEL = ['매우 넉넉한 집 (상위 20%)', '넉넉한 편인 집', '보통의 집', '빠듯한 집', '어려운 집 (하위 20%)'];
+
+// ---------- 인생 이벤트 (R2) ----------
+// 구간별 확률 사건. cond(ctx) 가 참일 때만 후보가 되고, 가중치 w 로 하나를 뽑는다.
+// ctx: { gdp, gini, urb, urban, quintile, le, stats, money, tags, sex }
+// fx: [건강, 행복, 배움, 관계], money: 소득 계수 보정, tag: 인생 지도 표시 이름
+// 모든 문장은 이 게임을 위해 새로 작성했습니다.
+const _has = (tags, ...ts) => ts.some((t) => tags.includes(t));
+
+export const EVENTS = [
+  // 유아기 (0–6세)
+  { stage: 'infant', w: 30, cond: () => true, tag: '이웃의 품', title: '이웃의 품',
+    text: '이웃들이 돌아가며 당신을 돌봤습니다. 마을 전체가 울타리였습니다.', fx: [0, 2, 0, 4] },
+  { stage: 'infant', w: 25, cond: (c) => c.le < 68, tag: '전염병', title: '전염병이 돌다',
+    text: '지역에 전염병이 돌았습니다. 당신은 살아남았지만, 몸에 오래 흔적이 남았습니다.', fx: [-6, -2, 0, 0] },
+  { stage: 'infant', w: 25, cond: () => true, tag: '재능', title: '재능의 싹',
+    text: '노래와 그림에 남다른 재능을 보였습니다. 어른들이 먼저 알아봤습니다.', fx: [0, 3, 3, 0] },
+  { stage: 'infant', w: 20, cond: (c) => c.gdp < 4000, tag: '흉년', title: '흉년',
+    text: '몇 해 연속 흉년이 들었습니다. 식탁이 단출해졌고, 가족의 허리띠가 졸라매졌습니다.', fx: [-4, -3, 0, 0], money: -0.05 },
+  { stage: 'infant', w: 20, cond: () => true, tag: '동생', title: '동생이 생기다',
+    text: '동생이 태어났습니다. 나눠 가질 것이 늘었지만, 함께할 사람도 늘었습니다.', fx: [0, 1, 0, 3] },
+  { stage: 'infant', w: 15, cond: (c) => !c.urban && c.urb > 55, tag: '이사', title: '도시로 이사',
+    text: '가족이 일자리를 찾아 도시로 이사했습니다. 낯선 불빛 아래에서 새로운 세상이 열렸습니다.', fx: [0, 0, 3, -1] },
+
+  // 아동기 (7–12세)
+  { stage: 'child', w: 25, cond: (c) => c.stats.learning >= 50 && c.gdp < 8000, tag: '장학금', title: '장학금',
+    text: '성적을 알아본 사람들이 장학금을 마련해 줬습니다. 공부를 계속할 길이 열렸습니다.', fx: [0, 3, 6, 0] },
+  { stage: 'child', w: 15, cond: () => true, tag: '사고', title: '교통사고',
+    text: '길에서 사고를 당했습니다. 몇 달을 깁스를 하고 보냈고, 절뚝이는 버릇이 남았습니다.', fx: [-8, -4, 0, 0] },
+  { stage: 'child', w: 25, cond: () => true, tag: '운동선수', title: '운동장의 스타',
+    text: '달리기와 공놀이에 소질을 보였습니다. 대회에서 메달을 따며 동네의 자랑이 됐습니다.', fx: [4, 4, 0, 2] },
+  { stage: 'child', w: 20, cond: () => true, tag: '책', title: '책과의 만남',
+    text: '우연히 손에 잡힌 낡은 책 한 권이 세상의 크기를 바꿔 놓았습니다.', fx: [0, 2, 6, 0] },
+  { stage: 'child', w: 20, cond: (c) => c.quintile >= 4, tag: '집안 돌봄', title: '아픈 가족',
+    text: '가족이 병에 걸려 당신이 집안일을 도맡았습니다. 어린 나이에 철이 들었습니다.', fx: [-2, -3, -2, 3], money: -0.05 },
+  { stage: 'child', w: 15, cond: (c) => c.urb >= 70, tag: '스마트폰', title: '스마트폰 시대',
+    text: '스마트폰이 보급되면서 세상의 정보가 손안에 들어왔습니다. 밤새 새로운 것들을 배웠습니다.', fx: [0, 1, 4, 0] },
+
+  // 청소년기 (13–18세)
+  { stage: 'teen', w: 15, cond: (c) => c.stats.health >= 62, tag: '스카우트', title: '스카우트 제의',
+    text: '운동부에서 뛰는 모습을 본 관계자가 스카우트를 제의했습니다. 재능이 길이 될 수 있음을 처음 알았습니다.', fx: [3, 5, 0, 3] },
+  { stage: 'teen', w: 20, cond: (c) => c.stats.learning < 55, tag: '낙방', title: '시험 낙방',
+    text: '중요한 시험에서 떨어졌습니다. 한동안 스스로를 탓하며 지냈습니다.', fx: [0, -5, -2, 0] },
+  { stage: 'teen', w: 25, cond: () => true, tag: '첫사랑', title: '첫사랑',
+    text: '마음이 먼저 반응하는 사람을 만났습니다. 세상이 조금 더 선명해졌습니다.', fx: [0, 5, 0, 3] },
+  { stage: 'teen', w: 15, cond: (c) => c.stats.happiness < 45, tag: '방황', title: '방황',
+    text: '무단결석과 긴 외박이 이어졌습니다. 아무에게도 말하지 못한 마음이 무거웠습니다.', fx: [-3, -3, -2, -2] },
+  { stage: 'teen', w: 15, cond: (c) => c.stats.learning >= 65, tag: '입상', title: '경시대회 입상',
+    text: '지역 경시대회에서 입상했습니다. 이름이 실린 상장이 벽에 걸렸습니다.', fx: [0, 4, 6, 0] },
+  { stage: 'teen', w: 15, cond: (c) => _has(c.tags, '일찍 취업', '소년의 일'), tag: '다친 손', title: '일터의 사고',
+    text: '일터에서 손을 다쳤습니다. 몸으로 버는 일의 무게를 일찍 배웠습니다.', fx: [-5, -3, 0, 0], money: 0.05 },
+
+  // 청년기 (19–29세)
+  { stage: 'youth', w: 25, cond: () => true, tag: '첫 월급', title: '첫 월급',
+    text: '첫 월급을 받았습니다. 봉투의 무게가 어른이 된 증거처럼 느껴졌습니다.', fx: [0, 4, 0, 0], money: 0.2 },
+  { stage: 'youth', w: 15, cond: (c) => c.money >= 0.5, tag: '사업 실패', title: '사업 실패',
+    text: '야심 차게 시작한 일이 흔들렸습니다. 빚과 교훈만 남았습니다.', fx: [-2, -4, 0, 0], money: -0.25 },
+  { stage: 'youth', w: 15, cond: (c) => c.stats.learning >= 70 && c.gdp >= 8000, tag: '유학', title: '유학',
+    text: '더 큰 세상에서 공부할 기회를 얻었습니다. 낯선 언어 속에서 시야가 넓어졌습니다.', fx: [0, 2, 8, -2] },
+  { stage: 'youth', w: 20, cond: () => true, tag: '사기', title: '사기 피해',
+    text: '믿었던 사람에게 돈을 뜯겼습니다. 사람 보는 눈이 매서워졌습니다.', fx: [0, -5, 0, 0], money: -0.2 },
+  { stage: 'youth', w: 20, cond: () => true, tag: '봉사', title: '봉사활동',
+    text: '주말마다 봉사활동을 다녔습니다. 주는 기쁨이 버는 기쁨만큼 크다는 걸 배웠습니다.', fx: [1, 3, 0, 4] },
+  { stage: 'youth', w: 15, cond: (c) => _has(c.tags, '이주'), tag: '정착', title: '낯선 땅에 뿌리',
+    text: '이주한 나라에서 자리를 잡기 시작했습니다. 두 개의 고향을 가진 사람이 됐습니다.', fx: [0, 4, 2, 0], money: 0.2 },
+
+  // 장년기 (30–44세)
+  { stage: 'midlife', w: 25, cond: (c) => c.stats.learning >= 55, tag: '승진', title: '승진',
+    text: '오랜 노력이 인정받아 자리가 올랐습니다. 어깨의 짐도 함께 무거워졌습니다.', fx: [0, 3, 0, 0], money: 0.3 },
+  { stage: 'midlife', w: 20, cond: (c) => c.gdp < 12000, tag: '실업', title: '일자리를 잃다',
+    text: '경기가 꺾이며 일자리를 잃었습니다. 몇 달간 막막한 나날이 이어졌습니다.', fx: [-2, -6, 0, -2], money: -0.3 },
+  { stage: 'midlife', w: 15, cond: (c) => _has(c.tags, '커리어', '도전'), tag: '사업 확장', title: '사업 확장',
+    text: '승부수가 맞아떨어졌습니다. 일이 크게 불어났고, 이름이 알려지기 시작했습니다.', fx: [-1, 4, 0, 0], money: 0.4 },
+  { stage: 'midlife', w: 25, cond: () => true, tag: '부모상', title: '부모를 떠나보내다',
+    text: '부모님이 세상을 떠났습니다. 전화 한 통 못한 날들이 오래 후회로 남았습니다.', fx: [-1, -5, 0, 2] },
+  { stage: 'midlife', w: 20, cond: () => true, tag: '이사', title: '큰 이사',
+    text: '삶의 터전을 옮겼습니다. 낯설었던 동네가 어느새 고향이 됐습니다.', fx: [0, 2, 0, 2] },
+  { stage: 'midlife', w: 15, cond: (c) => c.stats.health < 45, tag: '건강 적신호', title: '건강 적신호',
+    text: '검진에서 경고를 받았습니다. 몸이 먼저 삶의 속도를 늦추라 말했습니다.', fx: [-4, -3, 0, 0] },
+
+  // 중년 (45–59세)
+  { stage: 'prime', w: 20, cond: (c) => c.stats.learning >= 60 || c.stats.relations >= 60, tag: '표창', title: '표창',
+    text: '오래 쌓아온 일에 표창이 주어졌습니다. 묵묵히 걸어온 길이 빛을 받았습니다.', fx: [0, 5, 0, 3] },
+  { stage: 'prime', w: 25, cond: (c) => c.stats.relations >= 55, tag: '자녀 결혼', title: '자녀의 결혼',
+    text: '자녀가 배우자를 맞았습니다. 울컥한 마음을 숨기느라 애썼습니다.', fx: [0, 5, 0, 4] },
+  { stage: 'prime', w: 15, cond: (c) => c.money >= 0.8, tag: '투자', title: '투자의 결실',
+    text: '오래 묵혀 둔 투자가 결실을 맺었습니다. 숫자가 아니라 시간이 일해 줬습니다.', fx: [0, 4, 0, 0], money: 0.3 },
+  { stage: 'prime', w: 15, cond: (c) => c.stats.health < 42, tag: '요양 시작', title: '요양 시작',
+    text: '몸 곳곳이 아프기 시작했습니다. 약봉지가 식탁 한켠을 차지하게 됐습니다.', fx: [-3, -2, 0, 1] },
+  { stage: 'prime', w: 20, cond: () => true, tag: '제2의 직업', title: '제2의 직업',
+    text: '젊은 날의 취미가 일이 됐습니다. 새로운 이름으로 불리기 시작했습니다.', fx: [1, 3, 3, 0], money: 0.15 },
+
+  // 노년 (60–74세)
+  { stage: 'senior', w: 20, cond: (c) => c.gdp >= 15000, tag: '연금', title: '연금 생활',
+    text: '연금이 나오기 시작했습니다. 평생의 노동이 매달의 숫자로 돌아왔습니다.', fx: [0, 3, 0, 0], money: 0.1 },
+  { stage: 'senior', w: 25, cond: (c) => c.stats.relations >= 50, tag: '손주', title: '손주 탄생',
+    text: '손주가 태어났습니다. 작은 손가락 하나에 하루가 갑니다.', fx: [0, 6, 0, 4] },
+  { stage: 'senior', w: 25, cond: () => true, tag: '취미', title: '취미의 계절',
+    text: '미뤄 뒀던 취미에 빠졌습니다. 배우는 즐거움에 나이가 없다는 걸 알았습니다.', fx: [2, 5, 1, 2] },
+  { stage: 'senior', w: 10, cond: (c) => c.stats.relations >= 55, tag: '이별', title: '오랜 동반자와의 이별',
+    text: '반평생을 함께한 사람과 이별했습니다. 식탁의 한쪽이 오래 비어 있었습니다.', fx: [-2, -6, 0, -2] },
+  { stage: 'senior', w: 20, cond: () => true, tag: '동네 어른', title: '동네의 어른',
+    text: '어느새 사람들이 당신을 찾습니다. 누군가의 등을 토닥이는 일이 하루 일과가 됐습니다.', fx: [0, 3, 0, 4] },
+
+  // 고령기 (75–90세)
+  { stage: 'oldage', w: 25, cond: () => true, tag: '장수상', title: '마을의 장수 어른',
+    text: '마을에서 가장 연장자가 됐습니다. 생일마다 사람들이 모여듭니다.', fx: [0, 4, 0, 3] },
+  { stage: 'oldage', w: 15, cond: (c) => c.stats.learning >= 55, tag: '회고록', title: '회고록',
+    text: '살아온 이야기를 글로 남기기 시작했습니다. 한 페이지 한 페이지가 한 시절입니다.', fx: [0, 4, 2, 1] },
+  { stage: 'oldage', w: 20, cond: () => true, tag: '낙상', title: '낙상',
+    text: '낙상으로 입원했습니다. 걷는 일이 하루하루의 숙제가 됐습니다.', fx: [-5, -2, 0, 0] },
+  { stage: 'oldage', w: 20, cond: (c) => c.stats.relations >= 50, tag: '귀향', title: '가족의 귀환',
+    text: '멀리 살던 가족이 곁으로 돌아왔습니다. 집안에 오랜만에 웃음소리가 깃들었습니다.', fx: [0, 5, 0, 4] },
+  { stage: 'oldage', w: 25, cond: () => true, tag: '평온', title: '평온한 나날',
+    text: '아침 햇살과 찻잎의 온기로 하루를 엽니다. 아무 일 없는 하루가 가장 큰 복입니다.', fx: [2, 3, 0, 1] },
+];
