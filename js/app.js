@@ -293,7 +293,7 @@ $('#btn-home').addEventListener('click', () => { location.hash = ''; show('#scr-
 
 // ---------- 공유 링크 재현 ----------
 (function boot() {
-  const m = location.hash.match(/^#s=([a-z0-9]{6})-(\d{8})$/);
+  const m = location.hash.match(/^#s=([a-z0-9]{6})-(\d{1,8})$/);
   if (m) {
     seed = m[1];
     choices = m[2].split('').map(Number);
