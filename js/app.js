@@ -131,6 +131,8 @@ $('#btn-card').addEventListener('click', () => { $('#death-overlay').classList.a
 
 // ---------- 인생 이벤트 (R2) ----------
 function showEvent(ev) {
+  $('#e-kicker').textContent = ev.chain ? '연쇄 사건' : '일어난 일';
+  $('#e-chain').textContent = ev.chain ? '◂ 이전 사건 「' + ev.from + '」에서 이어집니다' : '';
   $('#e-title').textContent = ev.title;
   $('#e-text').textContent = ev.text;
   const labels = ['건강', '행복', '배움', '관계'];
@@ -203,8 +205,8 @@ function renderCard(life) {
     const t = n === 0 ? 0 : i / n;
     const y = 1000 - t * 660;
     const x = 500 + Math.sin(i * 1.05 + 0.4) * 190;
-    const evTag = i === 0 ? null : (life.stages[i - 1].event ? life.stages[i - 1].event.tag : null);
-    pts.push({ x, y, age, tag: i === 0 ? '태어남' : life.stages[i - 1].tag, title: i === 0 ? life.country : life.stages[i - 1].title, eventTag: evTag });
+    const evObj = i === 0 ? null : life.stages[i - 1].event;
+    pts.push({ x, y, age, tag: i === 0 ? '태어남' : life.stages[i - 1].tag, title: i === 0 ? life.country : life.stages[i - 1].title, eventTag: evObj ? evObj.tag : null, chain: !!(evObj && evObj.chain), from: evObj && evObj.from });
   }
   ctx.strokeStyle = 'rgba(255,217,160,.75)';
   ctx.lineWidth = 5;
@@ -218,6 +220,30 @@ function renderCard(life) {
   ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
   ctx.stroke();
   ctx.shadowBlur = 0;
+
+  // 연쇄 사건: 방아쇠 사건 노드에서 후속 사건 노드로 점선 연결 (R4)
+  pts.forEach((p, i) => {
+    if (!p.chain) return;
+    const j = pts.findIndex((q, k) => k < i && q.eventTag === p.from);
+    if (j < 0) return;
+    const a = pts[j];
+    ctx.save();
+    ctx.setLineDash([7, 7]);
+    ctx.strokeStyle = 'rgba(127,212,193,.65)';
+    ctx.lineWidth = 3;
+    const cx = (a.x + p.x) / 2 + (a.x < 500 ? 120 : -120);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(cx, (a.y + p.y) / 2, p.x, p.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(127,212,193,.85)';
+    ctx.font = '600 17px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('연쇄', cx, (a.y + p.y) / 2 - 8);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  });
 
   pts.forEach((p, i) => {
     const last = i === pts.length - 1;
@@ -235,9 +261,9 @@ function renderCard(life) {
     ctx.font = '20px sans-serif';
     ctx.fillText(p.age + '세', tx, p.y + 28);
     if (p.eventTag) {
-      ctx.fillStyle = '#7fd4c1';
+      ctx.fillStyle = p.chain ? '#ffb45e' : '#7fd4c1';
       ctx.font = '600 18px sans-serif';
-      ctx.fillText('◆ ' + p.eventTag, tx, p.y + 52);
+      ctx.fillText((p.chain ? '⬥ ' : '◆ ') + p.eventTag, tx, p.y + 52);
     }
     ctx.textAlign = 'left';
   });
