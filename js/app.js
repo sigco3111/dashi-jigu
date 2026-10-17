@@ -6,6 +6,7 @@ const STORE = 'dashi-jigu-lives';
 let seed = null;
 let choices = [];
 let era = 'now';
+let ver = 'n1';
 let lastLife = null;
 
 function show(id) {
@@ -17,7 +18,7 @@ const fmtUsd = (n) => '$' + n.toLocaleString('en-US');
 const pct = (x) => (x * 100 >= 0.1 ? (x * 100).toFixed(1) : (x * 100).toFixed(2));
 
 // ---------- 시작 ----------
-$('#btn-born').addEventListener('click', () => { seed = randomSeed(); choices = []; showBirth(); });
+$('#btn-born').addEventListener('click', () => { seed = randomSeed(); choices = []; ver = 'n2'; showBirth(); });
 $('#btn-archive').addEventListener('click', showArchive);
 $('#btn-arch-back').addEventListener('click', () => { location.hash = ''; show('#scr-start'); });
 
@@ -29,13 +30,13 @@ eraBtns.forEach((b) => {
     era = b.dataset.era;
   });
 });
-function eraSuffix() { return era !== 'now' ? '-e' + era : ''; }
+function eraSuffix() { return (era !== 'now' ? '-e' + era : '') + (ver === 'n2' ? '-n2' : ''); }
 
 // ---------- 탄생 ----------
 function showBirth() {
   show('#scr-birth');
   $('#birth-panel').classList.add('hidden');
-  const life = simulate(seed, [], era);
+  const life = simulate(seed, [], era, ver);
   runStarfield(() => {
     $('#b-country').textContent = life.country;
     $('#b-detail').textContent = (life.era && life.era !== 'now' ? life.era + '년생 · ' : '') + (life.urban ? '도시' : '농촌') + ' · ' + life.wealthLabel;
@@ -92,12 +93,12 @@ function renderHud(stats) {
 function renderStage() {
   $('#death-overlay').classList.add('hidden');
   $('#event-overlay').classList.add('hidden');
-  const life = simulate(seed, choices, era);
+  const life = simulate(seed, choices, era, ver);
   renderHud(life.stats);
   if (life.done) { showDeath(life); return; }
   const i = choices.length;
   const st = STAGES[i];
-  const birth = simulate(seed, [], era);
+  const birth = simulate(seed, [], era, ver);
   const place = birth.urban ? '도시의 작은 집' : '농촌의 집';
   $('#st-age').textContent = st.ages[0] + '세 – ' + st.ages[1] + '세';
   $('#st-title').textContent = st.title;
@@ -111,7 +112,7 @@ function renderStage() {
     b.addEventListener('click', () => {
       choices[i] = idx;
       location.hash = '#s=' + seed + '-' + choices.join('') + eraSuffix();
-      const after = simulate(seed, choices, era);
+      const after = simulate(seed, choices, era, ver);
       renderHud(after.stats);
       const ev = after.stages[i] && after.stages[i].event;
       if (ev) { setTimeout(() => showEvent(ev), 450); }
@@ -139,7 +140,7 @@ function showDeath(life) {
   saveLife(life);
 }
 
-$('#btn-card').addEventListener('click', () => { $('#death-overlay').classList.add('hidden'); renderCard(simulate(seed, choices, era)); show('#scr-card'); });
+$('#btn-card').addEventListener('click', () => { $('#death-overlay').classList.add('hidden'); renderCard(simulate(seed, choices, era, ver)); show('#scr-card'); });
 
 // ---------- 인생 이벤트 (R2) ----------
 function showEvent(ev) {
@@ -161,7 +162,7 @@ function saveLife(life) {
   const evs = life.stages.filter((s) => s.event).map((s) => s.event.tag);
   const chain = life.stages.some((s) => s.event && s.event.chain);
   const lives = loadLives();
-  lives.unshift({ seed, choices: choices.join(''), era: life.era || 'now', name: life.name, country: life.country, age: r.deathAge, cause: r.cause, date: new Date().toISOString().slice(0, 10), rarityN: life.rarityN, chain, events: evs });
+  lives.unshift({ seed, choices: choices.join(''), era: life.era || 'now', ver: life.ver || 'n1', name: life.name, country: life.country, age: r.deathAge, cause: r.cause, date: new Date().toISOString().slice(0, 10), rarityN: life.rarityN, chain, events: evs });
   localStorage.setItem(STORE, JSON.stringify(lives.slice(0, 50)));
 }
 
@@ -193,6 +194,7 @@ function showArchive() {
     b.addEventListener('click', () => {
       seed = l.seed; choices = l.choices.split('').map(Number);
       era = l.era || 'now';
+      ver = l.ver || 'n1';
       eraBtns.forEach((x) => x.classList.toggle('active', x.dataset.era === era));
       location.hash = '#s=' + seed + '-' + l.choices + eraSuffix();
       renderCard(simulate(seed, choices, era)); show('#scr-card');
@@ -372,7 +374,7 @@ $('#btn-save').addEventListener('click', () => {
 });
 $('#btn-share').addEventListener('click', async (e) => {
   const url = location.origin + location.pathname + '#s=' + seed + '-' + choices.join('') + eraSuffix();
-  const l = lastLife || simulate(seed, choices);
+  const l = lastLife || simulate(seed, choices, era, ver);
   const text = '「다시, 지구」 ' + (l.era && l.era !== 'now' ? l.era + '년생 · ' : '') + l.name + ' — ' + l.country + '에서 ' + l.result.deathAge + '세를 살았습니다 (이 삶의 확률 ' + l.rarityN + '명 중 1명).\n당신의 삶도 뽑아 보세요: ' + url;
   try {
     await navigator.clipboard.writeText(text);
@@ -382,18 +384,19 @@ $('#btn-share').addEventListener('click', async (e) => {
   }
   setTimeout(() => { e.target.textContent = '링크 복사'; }, 1600);
 });
-$('#btn-again').addEventListener('click', () => { seed = randomSeed(); choices = []; location.hash = ''; showBirth(); });
+$('#btn-again').addEventListener('click', () => { seed = randomSeed(); choices = []; ver = 'n2'; location.hash = ''; showBirth(); });
 $('#btn-home').addEventListener('click', () => { location.hash = ''; show('#scr-start'); });
 
 // ---------- 공유 링크 재현 ----------
 (function boot() {
-  const m = location.hash.match(/^#s=([a-z0-9]{6})-(\d{1,8})(?:-e(\d{4}))?$/);
+  const m = location.hash.match(/^#s=([a-z0-9]{6})-(\d{1,8})(?:-e(\d{4}))?(-n2)?$/);
   if (m) {
     seed = m[1];
     choices = m[2].split('').map(Number);
     era = m[3] || 'now';
+    ver = m[4] ? 'n2' : 'n1';
     eraBtns.forEach((x) => x.classList.toggle('active', x.dataset.era === era));
-    const life = simulate(seed, choices, era);
+    const life = simulate(seed, choices, era, ver);
     if (life.done) { renderCard(life); show('#scr-card'); return; }
   }
   show('#scr-start');
