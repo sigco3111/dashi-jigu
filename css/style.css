@@ -94,3 +94,6 @@ h1 { font-size: 44px; margin: 0; letter-spacing: -0.02em; color: var(--warm); te
 .rep-k { flex: 0 0 34px; color: var(--accent); font-weight: 700; }
 .rep-v { color: var(--dim); flex: 1; }
 #death-overlay .panel { max-height: 86vh; overflow-y: auto; }
+
+#e-chain { font-size: 12.5px; margin: -4px 0 8px; color: var(--accent); }
+#event-overlay[data-chain] .panel { border-color: var(--accent); }
