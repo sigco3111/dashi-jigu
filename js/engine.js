@@ -129,3 +129,49 @@ export function simulate(seed, choices) {
     stages: played, done, result,
   };
 }
+
+// ---------- 삶의 리포트 (R3) ----------
+// 표준정규 누적분포 Φ (Abramowitz–Stegun 7.1.26 근사)
+function normCdf(x) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989423 * Math.exp((-x * x) / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return x > 0 ? 1 - p : p;
+}
+// 같은 해 출생 코호트 기준 세계 평균 (출생아 수 가중)
+export function worldAverages() {
+  let le = 0, gdp = 0, gini = 0;
+  for (const c of COUNTRIES) { le += c[3] * c[2]; gdp += c[4] * c[2]; gini += c[6] * c[2]; }
+  return { le: le / TOTAL_BIRTHS, gdp: gdp / TOTAL_BIRTHS, gini: gini / TOTAL_BIRTHS };
+}
+// 같은 해 태어난 세계 아기 가운데 age세까지 살아남는 비율 (나라별 기대수명·Gompertz, 추정)
+export function cohortSurvival(age) {
+  let s = 0;
+  for (const c of COUNTRIES) s += c[2] * gompS(age, gompA(clamp(c[3], 40, 100)));
+  return s / TOTAL_BIRTHS;
+}
+// 사망 시점 리포트: 수명 비교 + 동갑 생존 + 소득 백분위 (로그정규 모델 추정)
+export function lifeReport(life) {
+  const r = life.result;
+  if (!r) return null;
+  const w = worldAverages();
+  const sigC = clamp(life.gini / 100, 0.25, 0.65);
+  const inc = Math.max(r.income, 1);
+  const topC = (1 - normCdf(Math.log(inc / life.gdp) / sigC)) * 100;
+  // 세계 백분위: 나라별 로그정규 분포를 출생아 수로 가중한 혼합 분포 (추정)
+  let below = 0;
+  for (const c of COUNTRIES) {
+    const sig = clamp(c[6] / 100, 0.25, 0.65);
+    below += c[2] * normCdf(Math.log(inc / c[4]) / sig);
+  }
+  const topW = (1 - below / TOTAL_BIRTHS) * 100;
+  return {
+    countryLE: life.le,
+    worldLE: Math.round(w.le * 10) / 10,
+    diffCountry: Math.round((r.deathAge - life.le) * 10) / 10,
+    diffWorld: Math.round((r.deathAge - w.le) * 10) / 10,
+    diedEarlierPct: Math.round(clamp((1 - cohortSurvival(r.deathAge)) * 100, 0.1, 99.9) * 10) / 10,
+    incomeTopCountryPct: Math.round(clamp(topC, 0.1, 99.9) * 10) / 10,
+    incomeTopWorldPct: Math.round(clamp(topW, 0.1, 99.9) * 10) / 10,
+  };
+}
