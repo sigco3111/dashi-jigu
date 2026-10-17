@@ -83,3 +83,7 @@ h1 { font-size: 44px; margin: 0; letter-spacing: -0.02em; color: var(--warm); te
 }
 .arch-item .a-name { font-weight: 700; }
 .arch-item .a-sub { color: var(--dim); font-size: 13px; margin-top: 4px; }
+
+#event-overlay h3 { margin: 4px 0 10px; font-size: 24px; color: var(--warm); }
+#e-text { line-height: 1.75; margin: 0 0 10px; }
+#e-fx { font-size: 14px; letter-spacing: .02em; margin: 0 0 12px; }
